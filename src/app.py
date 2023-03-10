@@ -8,8 +8,9 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Characters, Planets, Favorite_Characters, Favorite_Planets
 #from models import Person
+import requests
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -36,14 +37,56 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
+@app.route('/users', methods=['GET'])
+def get_users():
+    get_all_users = User.query.all()
+    get_all_users = list(map(lambda x: x.serialize(), get_all_users))
+    return jsonify(get_all_users), 200
 
-    return jsonify(response_body), 200
+@app.route('/favorite/planet/<int:planet_id>', methods=['POST'])
+def add_favorite_planet(planet_id):
+    data = request.get_json()
+    new_favorite_planet = Favorite_Planets(user_id=data["user_id"], planet_id=planet_id)
+    db.session.add(new_favorite_planet)
+    db.session.commit()
+    return jsonify("Tu planeta se ha añadido correctamente."), 200
+
+@app.route('/favorite/planet/<int:planet_id>', methods=['DELETE'])
+def remove_favorite_planet(planet_id):
+    data = request.get_json()
+    planet = Favorite_Planets.query.filter_by(user_id=data["user_id"], planet_id=planet_id).first()
+    db.session.delete(planet)
+    db.session.commit()
+    return jsonify("Planeta borrado correctamente."), 200
+
+@app.route('/favorite/characters/<int:character_id>', methods=['POST'])
+def add_favorite_character(character_id):
+    data = request.get_json()
+    new_favorite_character = Favorite_Characters(user_id=data["user_id"], character_id=character_id)
+    db.session.add(new_favorite_character)
+    db.session.commit()
+    return jsonify("Tu personaje se ha añadido correctamente."), 200
+
+@app.route('/favorite/character/<int:character_id>', methods=['DELETE'])
+def remove_favorite_character(character_id):
+    data = request.get_json()
+    character = Favorite_Characters.query.filter_by(user_id=data["user_id"], character_id=character_id).first()
+    db.session.delete(character)
+    db.session.commit()
+    return jsonify("Personaje borrado correctamente."), 200
+
+@app.route('/people', methods=['GET'])
+def handle_people():
+    get_all_people = Characters.query.all()
+    get_all_people = list(map(lambda x: x.serialize(), get_all_people))
+    return jsonify(get_all_people), 200
+
+@app.route('/planets', methods=['GET'])
+def handle_planets():
+    get_all_planets = Planets.query.all()
+    get_all_planets = list(map(lambda x: x.serialize(), get_all_planets))
+    return jsonify(get_all_planets), 200
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
